@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>NFL Pick'em</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #16181d;
+    --ink-soft: #5c6270;
+    --ink-faint: #8b919e;
+    --line: #e3e5ea;
+    --accent: #1b6ef3;
+    --flip: #b4690e;
+    --flip-bg: #fdf4e3;
+    --lean: #2f6f4f;
+    --good: #2f6f4f;
+    --bad: #c0392b;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(16,18,29,.06), 0 4px 16px rgba(16,18,29,.05);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1013;
+      --card: #191c21;
+      --ink: #f0f2f5;
+      --ink-soft: #a2a9b6;
+      --ink-faint: #737b8a;
+      --line: #282c34;
+      --accent: #5b9dff;
+      --flip: #e8a33d;
+      --flip-bg: #2a2114;
+      --lean: #63b98a;
+      --good: #63b98a;
+      --bad: #ef7b6c;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  header { margin-bottom: 20px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -.02em; }
+  .meta { color: var(--ink-soft); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); display: inline-block; }
+  .dot.warn { background: var(--bad); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---- tiebreaker hero ---- */
+  .tb { padding: 20px; margin-bottom: 22px; }
+  .tb-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); font-weight: 600; }
+  .tb-num { font-size: 52px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
+  .tb-sub { color: var(--ink-soft); font-size: 14px; }
+  .tb-foot { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 12.5px; }
+
+  /* ---- picks ---- */
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin: 0 4px 10px;
+  }
+  .section-head h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); margin: 0; font-weight: 600; }
+
+  ol.picks { list-style: none; margin: 0 0 22px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .pick { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .pick.flip { border-color: color-mix(in srgb, var(--flip) 45%, var(--line)); }
+
+  .badge {
+    flex: 0 0 auto; width: 52px; height: 52px; border-radius: 12px;
+    display: grid; place-items: center; font-weight: 700; font-size: 15px;
+    color: #fff; letter-spacing: -.01em; text-shadow: 0 1px 2px rgba(0,0,0,.25);
+  }
+  .body { flex: 1 1 auto; min-width: 0; }
+  .line1 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .team { font-weight: 650; font-size: 16px; }
+  .vs { color: var(--ink-soft); font-size: 14px; }
+  .line2 { color: var(--ink-faint); font-size: 12.5px; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+  .tag.flip { background: var(--flip-bg); color: var(--flip); }
+  .tag.move-up { color: var(--good); }
+  .tag.move-dn { color: var(--bad); }
+  .tag.split { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+
+  .conf { flex: 0 0 auto; text-align: right; min-width: 62px; }
+  .conf-num { font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .bar { height: 4px; border-radius: 99px; background: var(--line); margin-top: 5px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .pick.flip .bar > i { background: var(--flip); }
+
+  /* ---- misc ---- */
+  .note { color: var(--ink-soft); font-size: 13px; line-height: 1.6; padding: 14px 16px; margin-bottom: 22px; }
+  .note b { color: var(--ink); font-weight: 650; }
+  button.copy {
+    font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line);
+    padding: 7px 13px; border-radius: 9px; box-shadow: var(--shadow);
+  }
+  button.copy:active { transform: translateY(1px); }
+  .state { text-align: center; color: var(--ink-soft); padding: 48px 16px; }
+  .state code { font-size: 12px; color: var(--ink-faint); word-break: break-all; }
+  .skel { height: 76px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); opacity: .6; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: .45 } 50% { opacity: .8 } }
+  .banner { padding: 11px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 18px; background: var(--flip-bg); color: var(--flip); border: 1px solid color-mix(in srgb, var(--flip) 35%, transparent); }
+  footer { color: var(--ink-faint); font-size: 12px; text-align: center; margin-top: 8px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">This week's picks</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <div id="loading">
+    <div class="skel" style="height:132px;margin-bottom:22px"></div>
+    <div class="skel" style="margin-bottom:8px"></div>
+    <div class="skel" style="margin-bottom:8px"></div>
+    <div class="skel"></div>
+  </div>
+
+  <div id="error" class="state" hidden>
+    <p><strong>Couldn't load the picks.</strong></p>
+    <p><code id="error-msg"></code></p>
+  </div>
+
+  <div id="empty" class="state" hidden>
+    <p><strong>No games on the board.</strong></p>
+    <p>The slate fills in once markets open for the next week.</p>
+  </div>
+
+  <main id="content" hidden>
+    <section class="card tb" id="tb" hidden>
+      <div class="tb-label">Tiebreaker &middot; combined final score</div>
+      <div class="tb-num" id="tb-num"></div>
+      <div class="tb-sub" id="tb-sub"></div>
+      <div class="tb-foot" id="tb-foot"></div>
+    </section>
+
+    <div class="section-head">
+      <h2 id="picks-head">Picks</h2>
+      <button class="copy" id="copy">Copy all</button>
+    </div>
+    <ol class="picks" id="picks"></ol>
+
+    <div class="card note" id="strategy"></div>
+  </main>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+// Primary team colors, purely for scanning the list quickly.
+const COLORS = {
+  ARI:'#97233F', ATL:'#A71930', BAL:'#241773', BUF:'#00338D', CAR:'#0085CA',
+  CHI:'#0B162A', CIN:'#FB4F14', CLE:'#311D00', DAL:'#041E42', DEN:'#FB4F14',
+  DET:'#0076B6', GB:'#203731',  HOU:'#03202F', IND:'#002C5F', JAX:'#006778',
+  KC:'#E31837',  LAC:'#0080C6', LAR:'#003594', LV:'#000000',  MIA:'#008E97',
+  MIN:'#4F2683', NE:'#002244',  NO:'#D3BC8D',  NYG:'#0B2265', NYJ:'#125740',
+  PHI:'#004C54', PIT:'#101820', SEA:'#002244', SF:'#AA0000',  TB:'#D50A0A',
+  TEN:'#4B92DB', WAS:'#5A1414',
+};
+
+const pct = (n) => `${(n * 100).toFixed(1)}%`;
+const el = (id) => document.getElementById(id);
+
+// pickem_current exposes `matchup` ("MIA@SF"), not a teams array, so the
+// opponent is whichever side of the row is not the pick. probabilities is
+// keyed by team and agrees with it, so it serves as a cross-check.
+function opponent(g) {
+  const teams = g.probabilities && typeof g.probabilities === 'object'
+    ? Object.keys(g.probabilities)
+    : String(g.matchup || '').split('@');
+  return teams.find((t) => t !== g.pick) || '';
+}
+
+function kickoffLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(undefined, {
+    weekday: 'short', hour: 'numeric', minute: '2-digit',
+  });
+}
+
+function relative(iso) {
+  if (!iso) return 'never';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (Number.isNaN(mins)) return 'unknown';
+  if (mins < 60) return `${Math.max(mins, 0)}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 36) return `${hrs}h ago`;
+  return `${Math.round(hrs / 24)}d ago`;
+}
+
+// How far this pick's confidence has moved since the first snapshot of the week.
+function movementFor(matchup, pick, movement) {
+  const rows = movement
+    .filter((m) => m.matchup === matchup)
+    .sort((a, b) => String(a.snapshot_date).localeCompare(String(b.snapshot_date)));
+  if (rows.length < 2) return null;
+
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  // Confidence is always stated for that snapshot's own pick, so a flipped
+  // pick has to be read from the other side to compare like with like.
+  const firstConf = first.pick === pick ? Number(first.confidence) : 1 - Number(first.confidence);
+  const delta = Number(last.confidence) - firstConf;
+  return Math.abs(delta) < 0.02 ? null : delta;
+}
+
+function render(data) {
+  const { games, movement, tiebreaker, updatedAt, healthy } = data;
+
+  el('loading').hidden = true;
+
+  if (!games.length) { el('empty').hidden = false; return; }
+  el('content').hidden = false;
+
+  // ---- header ----
+  const flips = games.filter((g) => g.confidence < 0.60);
+  el('meta').innerHTML =
+    `<span><span class="dot${healthy === false ? ' warn' : ''}"></span> updated ${relative(updatedAt)}</span>` +
+    `<span>&middot;</span><span>${games.length} games</span>` +
+    (flips.length ? `<span>&middot;</span><span>${flips.length} toss-up${flips.length > 1 ? 's' : ''}</span>` : '');
+
+  const stale = updatedAt && (Date.now() - new Date(updatedAt).getTime()) > 36 * 3600e3;
+  if (healthy === false || stale) {
+    el('banner').hidden = false;
+    el('banner').textContent = healthy === false
+      ? 'The last refresh failed, so these numbers may be out of date.'
+      : 'These numbers are more than a day old — the daily refresh may not have run.';
+  }
+
+  // ---- tiebreaker ----
+  if (tiebreaker && tiebreaker.expected_total) {
+    el('tb').hidden = false;
+    el('tb-num').textContent = tiebreaker.expected_total;
+    el('tb-sub').textContent =
+      `${(tiebreaker.matchup || '').replace('@', ' vs ')}` +
+      (tiebreaker.kickoff ? ` · ${kickoffLabel(tiebreaker.kickoff)}` : '');
+    el('tb-foot').textContent =
+      `Expected combined points, from the full ladder of ${tiebreaker.rungs} over/under strikes — ` +
+      `not a single line. This is the last game of the week.`;
+  }
+
+  // ---- picks, most confident first ----
+  const sorted = [...games].sort((a, b) => b.confidence - a.confidence);
+  el('picks').innerHTML = sorted.map((g) => {
+    const other = opponent(g);
+    const isFlip = g.confidence < 0.60;
+    const move = movementFor(g.matchup, g.pick, movement);
+    const split = g.venue_spread !== null && g.venue_spread > 0.05;
+    const single = Array.isArray(g.sources) && g.sources.length === 1;
+
+    return `
+      <li class="card pick${isFlip ? ' flip' : ''}">
+        <div class="badge" style="background:${COLORS[g.pick] || '#555'}">${g.pick}</div>
+        <div class="body">
+          <div class="line1">
+            <span class="team">${g.pick}</span>
+            <span class="vs">over ${other || '?'}</span>
+          </div>
+          <div class="line2">
+            <span>${kickoffLabel(g.kickoff)}</span>
+            ${isFlip ? '<span class="tag flip">toss-up</span>' : ''}
+            ${move !== null ? `<span class="tag ${move > 0 ? 'move-up' : 'move-dn'}">${move > 0 ? '▲' : '▼'} ${Math.abs(move * 100).toFixed(1)} this week</span>` : ''}
+            ${split ? '<span class="tag split">venues disagree</span>' : ''}
+            ${single ? `<span class="tag">${g.sources[0]} only</span>` : ''}
+          </div>
+        </div>
+        <div class="conf">
+          <div class="conf-num">${(g.confidence * 100).toFixed(0)}%</div>
+          <div class="bar"><i style="width:${Math.round(g.confidence * 100)}%"></i></div>
+        </div>
+      </li>`;
+  }).join('');
+
+  // ---- strategy note ----
+  const closest = sorted[sorted.length - 1];
+  const edge = flips.length
+    ? `the ${flips.length} toss-up${flips.length === 1 ? '' : 's'} below`
+    : 'the closest games on the board';
+  el('strategy').innerHTML =
+    `<b>Where the week is actually decided.</b> In a pool scored on straight wins, everyone takes the ` +
+    `favorites and nobody separates. Your edge is ${edge}` +
+    (closest ? ` — the tightest is <b>${closest.pick} over ${opponent(closest)}</b> at ${pct(closest.confidence)}` : '') +
+    ` — and a sharp tiebreaker number. A “venues disagree” tag means Kalshi and Polymarket are pricing a game ` +
+    `differently, which usually means one of them has seen injury news the other hasn't.`;
+
+  // ---- copy ----
+  el('copy').addEventListener('click', async () => {
+    const lines = sorted.map((g) => `${g.pick} over ${opponent(g)} (${pct(g.confidence)})`);
+    if (tiebreaker?.expected_total) {
+      lines.push('', `Tiebreaker — ${(tiebreaker.matchup || '').replace('@', ' vs ')}: ${tiebreaker.expected_total} combined points`);
+    }
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      el('copy').textContent = 'Copied';
+      setTimeout(() => (el('copy').textContent = 'Copy all'), 1600);
+    } catch {
+      el('copy').textContent = 'Press ⌘/Ctrl+C';
+    }
+  });
+
+  el('footer').innerHTML =
+    `Blended from Kalshi and Polymarket, weighted by volume and open interest.<br>` +
+    `Refreshed once a day. Not betting advice, and no money is involved.`;
+}
+
+fetch('/api/picks')
+  .then(async (r) => {
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
+    return r.json();
+  })
+  .then(render)
+  .catch((err) => {
+    el('loading').hidden = true;
+    el('error').hidden = false;
+    el('error-msg').textContent = String(err.message || err);
+  });
+</script>
+</body>
+</html>
