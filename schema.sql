@@ -40,7 +40,14 @@ create table if not exists pickem_runs (
 );
 
 -- Latest picks for the upcoming slate, for the read-only page.
-create or replace view pickem_current as
+--
+-- security_invoker runs the view as whoever queries it, not as the role that
+-- created it. Without it a view created here executes as postgres and bypasses
+-- row level security on pickem_snapshots completely. That makes no difference
+-- while the policy below allows anon to read every row, but it would silently
+-- keep serving everything the moment that policy is narrowed. Requires PG15+.
+create or replace view pickem_current
+with (security_invoker = on) as
 select distinct on (matchup)
   matchup, kickoff, pick, confidence, probabilities,
   kalshi, polymarket, venue_spread, sources, snapshot_date
@@ -51,7 +58,8 @@ order by matchup, snapshot_date desc;
 -- Line movement through the week: the same game across daily snapshots.
 -- Injury news lands Wednesday through Friday, which is where the probabilities
 -- actually move.
-create or replace view pickem_movement as
+create or replace view pickem_movement
+with (security_invoker = on) as
 select matchup, snapshot_date, pick, confidence, probabilities
 from pickem_snapshots
 order by matchup, snapshot_date;
@@ -68,3 +76,9 @@ create policy "public read snapshots" on pickem_snapshots
 drop policy if exists "public read runs" on pickem_runs;
 create policy "public read runs" on pickem_runs
   for select to anon using (true);
+
+-- A policy decides which rows are visible; a grant decides whether the role may
+-- read the relation at all. Both are needed, and with security_invoker the
+-- grant is now checked against anon rather than the view's owner.
+grant select on pickem_snapshots, pickem_runs to anon;
+grant select on pickem_current, pickem_movement to anon;
