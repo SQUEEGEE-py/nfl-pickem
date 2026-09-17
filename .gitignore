@@ -1,0 +1,6 @@
+node_modules/
+.env
+.env.local
+.vercel
+# Local agent context: internal planning notes, not for the public repo.
+CLAUDE.md

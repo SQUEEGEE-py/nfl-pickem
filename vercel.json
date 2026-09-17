@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/refresh-picks",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}
