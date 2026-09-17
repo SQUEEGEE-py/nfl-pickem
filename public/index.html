@@ -85,11 +85,21 @@
   .pick { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
   .pick.flip { border-color: color-mix(in srgb, var(--flip) 45%, var(--line)); }
 
+  /* Logo chip. Kept light in both themes: the logos are drawn for light
+     backgrounds, and several of them (Raiders, Jets, Bengals) disappear against
+     a dark one. --tc is the team colour, set inline per row. */
   .badge {
     flex: 0 0 auto; width: 52px; height: 52px; border-radius: 12px;
-    display: grid; place-items: center; font-weight: 700; font-size: 15px;
-    color: #fff; letter-spacing: -.01em; text-shadow: 0 1px 2px rgba(0,0,0,.25);
+    display: grid; place-items: center; letter-spacing: -.01em;
+    background: color-mix(in srgb, var(--tc, #555) 10%, #fff);
+    border: 1px solid color-mix(in srgb, var(--tc, #555) 25%, transparent);
+    overflow: hidden;
   }
+  .badge img { width: 38px; height: 38px; object-fit: contain; display: block; }
+  /* Shown only if the logo fails to load, so the row never renders empty. */
+  .badge .abbr { display: none; font-weight: 700; font-size: 15px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .badge.noimg { background: var(--tc, #555); border-color: transparent; }
+  .badge.noimg .abbr { display: block; }
   .body { flex: 1 1 auto; min-width: 0; }
   .line1 { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
   .team { font-weight: 650; font-size: 16px; }
@@ -181,6 +191,12 @@ const COLORS = {
   PHI:'#004C54', PIT:'#101820', SEA:'#002244', SF:'#AA0000',  TB:'#D50A0A',
   TEN:'#4B92DB', WAS:'#5A1414',
 };
+
+// ESPN's public logo CDN. No key, no cost, and every one of our canonical
+// abbreviations works as-is once lowercased — including WAS, which is the one
+// that usually needs remapping. A bad abbreviation 404s rather than returning a
+// placeholder, so the fallback badge below is what the user would see.
+const logoUrl = (team) => `https://a.espncdn.com/i/teamlogos/nfl/500/${String(team).toLowerCase()}.png`;
 
 const pct = (n) => `${(n * 100).toFixed(1)}%`;
 const el = (id) => document.getElementById(id);
@@ -276,7 +292,10 @@ function render(data) {
 
     return `
       <li class="card pick${isFlip ? ' flip' : ''}">
-        <div class="badge" style="background:${COLORS[g.pick] || '#555'}">${g.pick}</div>
+        <div class="badge" style="--tc:${COLORS[g.pick] || '#555'}">
+          <img src="${logoUrl(g.pick)}" alt="" width="38" height="38" loading="lazy">
+          <span class="abbr">${g.pick}</span>
+        </div>
         <div class="body">
           <div class="line1">
             <span class="team">${g.pick}</span>
@@ -296,6 +315,15 @@ function render(data) {
         </div>
       </li>`;
   }).join('');
+
+  // If a logo fails to load, fall back to the coloured abbreviation so the row
+  // never renders as an empty chip.
+  for (const img of document.querySelectorAll('.badge img')) {
+    img.addEventListener('error', () => {
+      img.parentElement?.classList.add('noimg');
+      img.remove();
+    }, { once: true });
+  }
 
   // ---- strategy note ----
   const closest = sorted[sorted.length - 1];
